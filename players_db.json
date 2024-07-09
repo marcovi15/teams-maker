@@ -1,0 +1,24 @@
+{
+    "players": {
+        "Player 1": {
+            "role": "D",
+            "tier": "C"
+        },
+        "Player 2":{
+            "role": "F",
+            "tier": "A"
+        },
+        "Player 3":{
+            "role": "D",
+            "tier": "A"
+        },
+        "Player 4":{
+            "role": "D",
+            "tier": "A"
+        },
+        "Player 5":{
+            "role": "D",
+            "tier": "B"
+        }
+    }
+}
