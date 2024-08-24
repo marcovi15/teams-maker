@@ -3,133 +3,145 @@ import pandas as pd
 import pulp
 import json
 import os
-import math
+import random
 import warnings
 
+# Turn off slice assignment warning
+pd.options.mode.chained_assignment = None
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
-players_db_path = os.path.join(BASEDIR, "players_db.json")
+players_db_path = os.path.join(BASEDIR, "players_db.csv")
+# players_db_path = os.path.join(os.environ['USERPROFILE'], 'Desktop', "players_db.json")
+
 
 tiers_values = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
 
 
-def call_solver(df, num_teams):
+def format_output(teams_list, df, solver_outcome):
     """
-    Sets up optimisation and runs it
-    :param df: DataFrame containing player data
-    :param num_teams: Int with number of teams to create
-    :return: Optimisation status and results
+    Print results while keeping it separate from inputs definition
     """
-    # TODO: Make tolerance an argument
-    tolerance = .2
-    roles = df["role"].unique()
-    max_team_size = int(np.ceil(len(df) / num_teams))
-    min_team_size = max_team_size - 1
 
-    # create list of all possible teams
-    potential_combinations = [tuple(c) for c in pulp.allcombinations(df["name"], max_team_size)]
-    possible_teams = [t for t in potential_combinations if len(t) >= min_team_size]
-
-    prob = pulp.LpProblem("making_teams", pulp.LpMinimize)
-
-    # Create a binary variable for each possible team
-    x = pulp.LpVariable.dicts("team", possible_teams, lowBound=0, upBound=1, cat=pulp.LpInteger)
-
-    # Objective function
-    prob += pulp.LpAffineExpression([(x[t], sum(df[df["name"].isin(t)]["score"])) for t in possible_teams])
-
-    # Strength constraint
-    for t in possible_teams:
-        prob += (
-                x[t] * sum(df[df["name"].isin(t)]["score"]) <=
-                round(sum(df["score"]) / num_teams * (1 + tolerance)),
-                f"Max_{t}_score"
-        )
-
-    # Number of teams
-    prob += (
-        pulp.lpSum([x[t] for t in possible_teams]) == num_teams,
-        f"Number_of_teams",
-    )
-
-    # Each player is assigned to exactly one team
-    for player in df["name"]:
-        prob += pulp.lpSum([x[t] for t in possible_teams if player in t]) == 1, f"{player}_must_play"
-
-    # Min number of players in each role in each team
-    for r in roles:
-        prob += (
-            pulp.lpSum([x[t] * len(df[(df["name"].isin(t)) & (df["role"] == r)]) for t in possible_teams]) >=
-            round(len(df[df["role"] == r]) / num_teams) - 1,
-            f"Minimum_{r}",
-        )
-
-    # Print problem
-    prob.writeLP("TeamsProblem.lp")
-    # Solve the problem
-    prob.solve()
-
-    # Assign results
-    teams_selected = [t for t in possible_teams if pulp.value(x[t]) == 1]
-
-    return prob.status, teams_selected
-
-
-def make_teams(players_list, num_teams=2):
-    """
-    Organises inputs into a DataFrame by accessing the database and calls the optimiser.
-    :param players_list: list containing players' names
-    :param num_teams: Int with desired number of teams
-    :return:
-    """
-    # Read players attributes from DB
-    players_db = json.load(open(players_db_path))
-
-    # Select available players from list and create a pool
-    players_pool = pd.DataFrame(columns=["name", "tier", "score", "role"])
-    for name in players_list:
-        if name in players_db["players"]:
-            players_pool.loc[len(players_pool), "name"] = name
-            players_pool.loc[players_pool["name"] == name, "role"] = players_db["players"][name]["role"]
-            players_pool.loc[players_pool["name"] == name, "tier"] = players_db["players"][name]["tier"]
-            # Convert tiers into numeric values
-            players_pool.loc[players_pool["name"] == name, "score"] = tiers_values[players_db["players"][name]["tier"]]
-        else:
-            # Raise warning if some players aren't in the DB
-            warnings.warn(f"{name} is not in the players database")
-
-    # Call optimiser
-    outcome, teams = call_solver(players_pool, n_teams)
-
-    return teams, players_pool, outcome
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    players = ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5"]
-
-    # Set the number of teams you want and call teams maker
-    n_teams = 4
-    teams, players_df, outcome = make_teams(players, n_teams)
-
-    if outcome == 1:
+    if solver_outcome == 1:
         print("Optimal solution found.")
     else:
         print("Optimal solution not found.")
 
-    for i, team in enumerate(teams):
-        mask = players_df['name'].isin(team)
-        def_mask = (players_df["role"] == "D")
-        mid_mask = (players_df["role"] == "M")
-        for_mask = (players_df["role"] == "F")
+    ideal_avg_team_skill = sum(df['score']) / len(teams_list)
+
+    for i, team in enumerate(teams_list):
+        mask = df['name'].isin(team)
+        def_mask = (df["role"] == "D")
+        mid_mask = (df["role"] == "M")
+        for_mask = (df["role"] == "F")
 
         print(f"Team {i + 1} ({sum(mask)} players): {team}\n "
-              f"Strength level {sum(players_df['score'][mask])}\n"
+              f"Normalised skill level {round(sum(df['score'][mask]) / ideal_avg_team_skill, 2)}\n"
               f"Defenders: {sum(def_mask & mask)}, Midfielders: {sum(mid_mask & mask)}, Forwards: {sum(for_mask & mask)}.\n")
 
 
-# TODO:
-# - Add goalkeeper role
-# - Improve input method, maybe from cmd window
-# - Allow expansion of DB manually from interface
+def call_solver(df, tolerance):
+    """
+    Solver that divides pool of players into 2 teams
+    """
+
+    tot_players = len(df)
+    roles = df["role"].unique()
+
+    prob = pulp.LpProblem("making_teams", pulp.LpMinimize)
+
+    # Create a binary variable for each player
+    x = pulp.LpVariable.dicts("player", df.index, cat="Binary")
+
+    # Objective function
+    prob += 0, "Dummy obj. fun."
+
+    # Constraint on teams skill difference
+    prob += (pulp.LpAffineExpression([(x[p], df["score"][p]) for p in df.index]) - (sum(df["score"]) / 2)) >= -tolerance * sum(df["score"])
+    prob += (pulp.LpAffineExpression([(x[p], df["score"][p]) for p in df.index]) - (sum(df["score"]) / 2)) <= tolerance * sum(df["score"])
+
+    # Equal number of players in each role
+    for r in roles:
+        prob += ((pulp.lpSum([x[p] for p in df.index if df["role"][p] == r]) -
+                 (len([p for p in df.index if df["role"][p] == r]) / 2))
+                 <= .5)
+        prob += ((pulp.lpSum([x[p] for p in df.index if df["role"][p] == r]) -
+                  (len([p for p in df.index if df["role"][p] == r]) / 2))
+                 >= -.5)
+
+    # Equal total number of players on each team
+    prob += pulp.lpSum([x[p] for p in df.index]) - round(tot_players / 2) <= .5
+    prob += pulp.lpSum([x[p] for p in df.index]) - round(tot_players / 2) >= -.5
+
+    # The problem data is written to an .lp file
+    prob.writeLP("TeamsProblem.lp")
+
+    # Solve the problem
+    prob.solve(pulp.PULP_CBC_CMD(msg=False))
+
+    # Print the results
+    teams_selected = []
+    teams_selected.append([df["name"][p] for p in df.index if pulp.value(x[p]) == 1])
+    teams_selected.append([df["name"][p] for p in df.index if pulp.value(x[p]) == 0])
+
+    return prob.status, teams_selected
+
+
+def make_teams(players_list, n_of_teams=2, skill_diff_tolerance=.5):
+    """
+    Organise data format before calling solver
+    """
+
+    # Make sure input names are unique
+    players_list = list(set(players_list))
+
+    # Read players attributes from DB
+    players_db = pd.read_csv(players_db_path)
+
+    # Select available players from list and create a pool
+    players_pool = players_db[players_db["name"].isin(players_list)]
+    players_pool["score"] = pd.Series(dtype=int)
+
+    # Assign score to each player and assume average attributes for new players
+    for name in players_list:
+        if name in list(players_db["name"]):
+            # Convert tiers into numeric values
+            players_pool.loc[players_pool["name"] == name, "score"] = tiers_values[players_db.loc[players_db["name"] == name, "tier"].item()]
+        else:
+            # Raise warning if some players aren't in the DB
+            warnings.warn(f"{name} is not in the players database: average attributes will be assumed.")
+            players_pool.loc[len(players_pool), "name"] = name
+            roles = ['D', 'M', 'F']
+            players_pool.loc[players_pool["name"] == name, "role"] = random.choice(roles)
+            players_pool.loc[players_pool["name"] == name, "tier"] = 'C'
+            # Convert tiers into numeric values
+            players_pool.loc[players_pool["name"] == name, "score"] = tiers_values['C']
+
+    # Call optimiser
+    outcome, teams = call_solver(players_pool, skill_diff_tolerance)
+
+    # Call optimiser again if you need 4 teams
+    if n_of_teams == 4:
+        players_sub_pool_one = players_pool[players_pool["name"].isin(teams[0])]
+        players_sub_pool_two = players_pool[players_pool["name"].isin(teams[1])]
+        outcome_one, sub_teams_one = call_solver(players_sub_pool_one, skill_diff_tolerance)
+        outcome, sub_teams_two = call_solver(players_sub_pool_two, skill_diff_tolerance)
+        teams = sub_teams_one + sub_teams_two
+    elif (n_of_teams != 4) & (n_of_teams != 2):
+        warnings.warn(f"This script is not capable of handling {n_of_teams} teams."
+                      f"\n Pick either 2 or 4 teams.")
+
+    format_output(teams, players_pool, outcome)
+
+    return teams, players_pool, outcome
+
+
+if __name__ == '__main__':
+    players = ['Will', 'Terry', 'Alex G', 'Adekunle', 'Doruk', 'Chris E', 'Jaffa', 'Antonio',
+               'Antonios mate', 'Naser', 'Lee', 'Michael']
+
+    num_of_teams = 2
+    rate_skill_diff_tolerance = .02
+
+    teams, players_df, outcome = make_teams(players, num_of_teams, rate_skill_diff_tolerance)
 
