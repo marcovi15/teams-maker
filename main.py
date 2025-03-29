@@ -1,11 +1,15 @@
 from select import error
-
 import numpy as np
 import pandas as pd
 import random
 import os
 import warnings
-from data_paths import read_sign_up, read_db
+from data_paths import read_sign_up, read_db, publish_data
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 pd.options.mode.chained_assignment = None
@@ -51,12 +55,12 @@ def pick_players(df, n_teams):
     return teams
 
 
-def format_output(teams_dict, players_df):
+def format_output_message(teams_dict, players_df, n_teams):
     """
     Print results while keeping it separate from inputs definition
     """
 
-    ideal_avg_team_skill = sum(players_df['score']) / len(players_df)
+    ideal_avg_team_skill = sum(players_df['score']) / n_teams
 
     for team in teams_dict.keys():
         df = teams_dict[team]
@@ -65,12 +69,30 @@ def format_output(teams_dict, players_df):
               f"Defenders: {len(df[df['role']=='D'])}, Midfielders: {len(df[df['role']=='M'])}, Forwards: {len(df[df['role']=='F'])}.\n")
 
 
+def format_output(teams_dict, players_df, n_teams):
+
+    ideal_avg_team_skill = sum(players_df['score']) / n_teams
+
+    output_df = pd.DataFrame(
+        index = list(range(1, len(teams_dict) + 1)),
+        columns=['team_name', 'players', 'normalised_score']
+    )
+    for team in teams_dict.keys():
+        df = teams_dict[team]
+        output_df.loc[team, 'team_name'] = f"Team {team}"
+        output_df.loc[team, 'players'] = df['name'].to_list()
+        output_df.loc[team, 'normalised_score'] = round(sum(df['score']) / ideal_avg_team_skill, 2)
+
+    return output_df
+
+
 def make_teams(n_teams):
     """
     Wrapper for all other functions
     """
     # Make sure input names are unique
     players_list = read_sign_up()
+    players_list = list(set(players_list))
 
     # Read players attributes from DB
     players_db = read_db()
@@ -98,17 +120,32 @@ def make_teams(n_teams):
 
     teams = pick_players(players_pool, n_teams)
 
-    format_output(teams, players_pool)
+    teams_df = format_output(teams, players_pool, n_teams)
+
+    sheet_name = f"{n_teams}_teams"
+    publish_data(teams_df, sheet_name)
 
     return teams
 
 
+def main():
+
+    logger.info("Script execution started.")
+
+    for num_of_teams in [2, 3, 4]:
+        logger.info(f"Making {num_of_teams} teams...")
+        make_teams(num_of_teams)
+
+    logger.info("Script execution completed!")
+
+    result = "Script ran successfully."
+
+    return result
+
+
+def lambda_handler(event, context):
+    return main()
+
+
 if __name__ == '__main__':
-    players = ['Marco', 'Amirth', 'Joe T', 'James G', 'Jack B', 'Zack', 'George R', 'Jake', 'Bruno',
-               'Tee', 'Harshit', 'Beau', 'Victor', 'Harvey', 'Mathew', 'Doruk', 'Ricky', 'Vini',
-               'Abel', 'Filip', 'Matthew', 'Will W', 'David G', 'Luke', 'Pete', 'Stanley',
-               'Jayesh', 'Jayesh +1', 'Mathias', 'Christos', 'Maison', 'Favour', 'Sean B']
-
-    num_of_teams = 4
-
-    teams_list = make_teams(num_of_teams)
+    main()
