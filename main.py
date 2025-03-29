@@ -5,10 +5,9 @@ import pandas as pd
 import random
 import os
 import warnings
+from data_paths import read_sign_up, read_db
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
-players_db_path = os.path.join(BASEDIR, "players_db.csv")
-
 pd.options.mode.chained_assignment = None
 
 tiers_values = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
@@ -24,12 +23,16 @@ def sort_by_rank_and_role(df):
 
 def create_alternating_list(length, n_teams):
 
-    if n_teams == 2:
-        pattern = [1, 2, 2, 1]
-    elif n_teams == 4:
-        pattern = [1,2,3,4,4,3,2,1,3,4,1,2,2,1,4,3]
-    else:
+    if n_teams not in [2, 3, 4]:
         error(f"This code was not designed to create {n_teams} teams.")
+
+    match n_teams:
+        case 2:
+            pattern = [1, 2, 2, 1]
+        case 3:
+            pattern = [1, 2, 3, 3, 2, 1, 2, 1, 3, 3, 1, 2]
+        case 4:
+            pattern = [1,2,3,4,4,3,2,1,3,4,1,2,2,1,4,3]
 
     base_pattern = np.tile(pattern, length // 4 + 1)
     # Trim to the desired length
@@ -62,15 +65,15 @@ def format_output(teams_dict, players_df):
               f"Defenders: {len(df[df['role']=='D'])}, Midfielders: {len(df[df['role']=='M'])}, Forwards: {len(df[df['role']=='F'])}.\n")
 
 
-def make_teams(players_list, n_teams):
+def make_teams(n_teams):
     """
     Wrapper for all other functions
     """
     # Make sure input names are unique
-    players_list = list(set(players_list))
+    players_list = read_sign_up()
 
     # Read players attributes from DB
-    players_db = pd.read_csv(players_db_path)
+    players_db = read_db()
 
     # Select available players from list and create a pool
     players_pool = players_db[players_db['name'].isin(players_list)]
@@ -101,9 +104,11 @@ def make_teams(players_list, n_teams):
 
 
 if __name__ == '__main__':
-    players = ['Will', 'Terry', 'Alex G', 'Adekunle', 'Doruk', 'Chris E', 'Jaffa', 'Antonio',
-               'Antonios mate', 'Naser', 'Lee', 'Michael', 'Deepu', 'Paul']
+    players = ['Marco', 'Amirth', 'Joe T', 'James G', 'Jack B', 'Zack', 'George R', 'Jake', 'Bruno',
+               'Tee', 'Harshit', 'Beau', 'Victor', 'Harvey', 'Mathew', 'Doruk', 'Ricky', 'Vini',
+               'Abel', 'Filip', 'Matthew', 'Will W', 'David G', 'Luke', 'Pete', 'Stanley',
+               'Jayesh', 'Jayesh +1', 'Mathias', 'Christos', 'Maison', 'Favour', 'Sean B']
 
     num_of_teams = 4
 
-    teams_list = make_teams(players, num_of_teams)
+    teams_list = make_teams(num_of_teams)
