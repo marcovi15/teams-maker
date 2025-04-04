@@ -96,6 +96,7 @@ def make_teams(n_teams):
 
     # Read players attributes from DB
     players_db = read_db()
+    players_db = players_db.sort_values('name')
 
     # Select available players from list and create a pool
     players_pool = players_db[players_db['name'].isin(players_list)]
@@ -122,8 +123,11 @@ def make_teams(n_teams):
 
     teams_df = format_output(teams, players_pool, n_teams)
 
-    sheet_name = f"{n_teams}_teams"
-    publish_data(teams_df, sheet_name)
+    team_sheet_name = f"{n_teams}_teams"
+    publish_data(teams_df, team_sheet_name)
+
+    db_sheet_name = "database"
+    publish_data(players_db, db_sheet_name)
 
     return teams
 
