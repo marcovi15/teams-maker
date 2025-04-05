@@ -8,3 +8,5 @@ lambda_package/*
 bin/*
 webso*
 *build*
+__pycache__/*
+*.pyc

@@ -102,6 +102,14 @@ def make_teams(n_teams):
     players_pool = players_db[players_db['name'].isin(players_list)]
     players_pool['score'] = pd.Series(dtype=int)
 
+    # Add rows with new players
+    new_players_list = list(set(players_list) - set(players_db['name']))
+    new_players = pd.DataFrame({'name': new_players_list})
+    new_players = new_players.reindex(columns=players_pool.columns)
+    players_pool = pd.concat([players_pool, new_players], ignore_index=True)
+    warnings.warn(f"The following players are not in the database, average attributes will be assumed:\n"
+                  f"{new_players_list}")
+
     # Assign score to each player and assume average attributes for new players
     for name in players_list:
         if name in list(players_db['name']):
@@ -109,7 +117,6 @@ def make_teams(n_teams):
             players_pool.loc[players_pool['name'] == name, 'score'] = tiers_values[players_db.loc[players_db['name'] == name, 'tier'].item()]
         else:
             # Raise warning if some players aren't in the DB
-            warnings.warn(f"{name} is not in the players database: average attributes will be assumed.")
             players_pool.loc[len(players_pool), 'name'] = name
             roles = ['D', 'M', 'F']
             players_pool.loc[players_pool['name'] == name, 'role'] = random.choice(roles)
@@ -118,16 +125,14 @@ def make_teams(n_teams):
             players_pool.loc[players_pool['name'] == name, 'score'] = tiers_values['C']
 
     players_pool = sort_by_rank_and_role(players_pool)
-
     teams = pick_players(players_pool, n_teams)
-
     teams_df = format_output(teams, players_pool, n_teams)
 
     team_sheet_name = f"{n_teams}_teams"
-    publish_data(teams_df, team_sheet_name)
+    publish_data(teams_df, "saturday_football", team_sheet_name, 'teams-maker-key.json')
 
     db_sheet_name = "database"
-    publish_data(players_db, db_sheet_name)
+    publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
     return teams
 
@@ -149,3 +154,6 @@ def main():
 
 def lambda_handler(event, context):
     return main()
+
+if __name__=='__main__':
+    main()
