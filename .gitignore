@@ -3,3 +3,7 @@ venv/*
 *.idea/
 *.lp
 *.json
+lambda_package/*
+*.zip
+bin/*
+webso*
