@@ -7,3 +7,4 @@ lambda_package/*
 *.zip
 bin/*
 webso*
+*build*
