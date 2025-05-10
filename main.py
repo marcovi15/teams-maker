@@ -117,7 +117,6 @@ def make_teams(n_teams):
             players_pool.loc[players_pool['name'] == name, 'score'] = tiers_values[players_db.loc[players_db['name'] == name, 'tier'].item()]
         else:
             # Raise warning if some players aren't in the DB
-            players_pool.loc[len(players_pool), 'name'] = name
             roles = ['D', 'M', 'F']
             players_pool.loc[players_pool['name'] == name, 'role'] = random.choice(roles)
             players_pool.loc[players_pool['name'] == name, 'tier'] = 'C'
