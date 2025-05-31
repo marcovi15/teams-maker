@@ -152,7 +152,31 @@ def main():
 
 
 def lambda_handler(event, context):
-    return main()
+    html_content = """
+        <html>
+            <head>
+                <title>Teams are ready!</title>
+            </head>
+            <body style="text-align: center; font-family: Arial; background-color: #f4f4f4; padding-top: 50px;">
+                <h1>Success!</h1>
+                <p>The script has run successfully.</p>
+                <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTNsMHFhMHdhOGoxYmU1cnl3MHY0NWtqMWpxeWhtb2htajRhdGttaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/g7GKcSzwQfugw/giphy.gif" alt="Success GIF" style="width:300px; margin-top: 20px;">
+            </body>
+        </html>
+        """
+
+    return_message = {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "text/html"
+        },
+        "Access-Control-Allow-Origin": "*",
+        "body": html_content
+    }
+
+    main()
+
+    return return_message
 
 if __name__=='__main__':
     main()
