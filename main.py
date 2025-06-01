@@ -245,7 +245,7 @@ def main():
 
     html_page = create_html_page(teams_dict)
 
-    save_output_page(html_page)
+    # save_output_page(html_page)
 
     logger.info("Script execution completed!")
 
