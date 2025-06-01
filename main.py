@@ -141,15 +141,15 @@ def create_html_page(teams_dict):
     team_format = {
         2: {
             "bibs": ["(bibs)", "(non-bibs)"],
-            "color": ["👕🟠", "👕🚫"]
+            "color": ["\U0001F455\U0001F7E0", "\U0001F455\U0001F6AB"] # ["👕🟠", "👕🚫"]
         },
         3: {
             "bibs": ["(orange bibs)", "(yellow bibs)", "(non-bibs)"],
-            "color": ["👕🟠", "👕🟡", "👕🚫"]
+            "color": ["\U0001F455\U0001F7E0", "\U0001F455\U0001F7E1", "\U0001F455\U0001F6AB"] # ["👕🟠", "👕🟡", "👕🚫"]
         },
         4: {
             "bibs": ["(orange bibs)", "(non-bibs)", "(yellow bibs)", "(non-bibs)"],
-            "color": ["👕🟠", "👕🚫", "👕🟡", "👕🚫"]
+            "color": ["\U0001F455\U0001F7E0", "\U0001F455\U0001F6AB", "\U0001F455\U0001F7E1", "\U0001F455\U0001F6AB"] # ["👕🟠", "👕🚫", "👕🟡", "👕🚫"]
         }
     }
 
