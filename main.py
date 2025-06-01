@@ -156,6 +156,7 @@ def create_html_page(teams_dict):
     html = """
     <html>
         <head>
+            <meta charset="UTF-8">
             <title>Teams Maker</title>
             <style>
                 body {
@@ -259,7 +260,7 @@ def lambda_handler(event, context):
     return_message = {
         "statusCode": 200,
         "headers": {
-            "Content-Type": "text/html"
+            "Content-Type": "text/html; charset=UTF-8"
         },
         "Access-Control-Allow-Origin": "*",
         "body": html_content
