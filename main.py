@@ -133,37 +133,128 @@ def make_teams(n_teams):
     db_sheet_name = "database"
     publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
-    return teams
+    return teams_df
+
+
+def create_html_page(teams_dict):
+
+    team_format = {
+        2: {
+            "bibs": ["(bibs)", "(non-bibs)"],
+            "color": ["👕🟠", "👕🚫"]
+        },
+        3: {
+            "bibs": ["(orange bibs)", "(yellow bibs)", "(non-bibs)"],
+            "color": ["👕🟠", "👕🟡", "👕🚫"]
+        },
+        4: {
+            "bibs": ["(orange bibs)", "(non-bibs)", "(yellow bibs)", "(non-bibs)"],
+            "color": ["👕🟠", "👕🚫", "👕🟡", "👕🚫"]
+        }
+    }
+
+    html = """
+    <html>
+        <head>
+            <title>Teams Maker</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f9f9f9;
+                    padding: 30px;
+                    text-align: center;
+                }
+                h1, h2, h3 {
+                    color: #333;
+                }
+                img {
+                    margin-top: 20px;
+                    width: 250px;
+                }
+                .teams-section {
+                    text-align: left;
+                    margin-top: 60px;
+                }
+                .group {
+                    margin-bottom: 40px;
+                }
+                .team {
+                    background-color: #ffffff;
+                    padding: 15px;
+                    margin: 10px 0;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                }
+                ul {
+                    padding-left: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Success!</h1>
+            <p>Teams have been made.</p>
+            <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG04djdsOG43bzMyd2lrc3RpNW5wNWd6anoxd25udG9qdG01Ym95OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/g7GKcSzwQfugw/giphy.gif" alt="Success GIF" />
+            
+            <div class="teams-section">
+                <h2>Team Assignments</h2>
+    """
+
+    # Loop through the team groupings
+    for total_teams, df in teams_dict.items():
+        html += f'<div class="group">'
+        html += f'<h3>If divided into {total_teams} teams:</h3>'
+
+        for idx, row in df.iterrows():
+            team_name = row['team_name']
+            players = row['players']
+
+            html += f'<div class="team">'
+            html += f'<strong>{team_name} {team_format[total_teams]["bibs"][idx-1]} {team_format[total_teams]["color"][idx-1]}</strong>'
+            html += '<ul>'
+            for player in players:
+                html += f'<li>{player}</li>'
+            html += '</ul>'
+            html += '</div>'  # End team
+
+        html += '</div>'  # End group
+
+    html += """
+            </div> <!-- End teams section -->
+        </body>
+    </html>
+    """
+
+    return html
+
+
+def save_output_page(html):
+
+    page = open("footy_script_results.html", "w")
+    page.write(html)
+    page.close()
 
 
 def main():
 
     logger.info("Script execution started.")
 
+    teams_dict = dict()
     for num_of_teams in [2, 3, 4]:
         logger.info(f"Making {num_of_teams} teams...")
-        make_teams(num_of_teams)
+        teams_dict[num_of_teams] = make_teams(num_of_teams)
+
+    html_page = create_html_page(teams_dict)
+
+    save_output_page(html_page)
 
     logger.info("Script execution completed!")
 
-    result = "Script ran successfully."
-
-    return result
+    return html_page
 
 
 def lambda_handler(event, context):
-    html_content = """
-        <html>
-            <head>
-                <title>Teams are ready!</title>
-            </head>
-            <body style="text-align: center; font-family: Arial; background-color: #f4f4f4; padding-top: 50px;">
-                <h1>Success!</h1>
-                <p>The script has run successfully.</p>
-                <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTNsMHFhMHdhOGoxYmU1cnl3MHY0NWtqMWpxeWhtb2htajRhdGttaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/g7GKcSzwQfugw/giphy.gif" alt="Success GIF" style="width:300px; margin-top: 20px;">
-            </body>
-        </html>
-        """
+
+    html_content = main()
 
     return_message = {
         "statusCode": 200,
@@ -173,8 +264,6 @@ def lambda_handler(event, context):
         "Access-Control-Allow-Origin": "*",
         "body": html_content
     }
-
-    main()
 
     return return_message
 

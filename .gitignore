@@ -10,3 +10,4 @@ webso*
 *build*
 __pycache__/*
 *.pyc
+*.html
