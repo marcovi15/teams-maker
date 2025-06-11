@@ -6,6 +6,8 @@ import os
 import warnings
 from data_paths import read_sign_up, read_db, publish_data
 import logging
+import time
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -86,12 +88,11 @@ def format_output(teams_dict, players_df, n_teams):
     return output_df
 
 
-def make_teams(n_teams):
+def make_teams(n_teams, players_list):
     """
     Wrapper for all other functions
     """
     # Make sure input names are unique
-    players_list = read_sign_up()
     players_list = list(set(players_list))
 
     # Read players attributes from DB
@@ -239,10 +240,12 @@ def main():
 
     logger.info("Script execution started.")
 
+    players_list = read_sign_up()
+
     teams_dict = dict()
     for num_of_teams in [2, 3, 4]:
         logger.info(f"Making {num_of_teams} teams...")
-        teams_dict[num_of_teams] = make_teams(num_of_teams)
+        teams_dict[num_of_teams] = make_teams(num_of_teams, players_list)
 
     html_page = create_html_page(teams_dict)
 
@@ -269,4 +272,8 @@ def lambda_handler(event, context):
     return return_message
 
 if __name__=='__main__':
+    start = time.time()
     main()
+    end = time.time()
+    print(end - start)
+
