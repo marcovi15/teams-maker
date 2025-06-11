@@ -14,6 +14,7 @@ def lambda_handler(event, context):
         Payload=json.dumps({'request_id': request_id})
     )
 
+    # The function URL points to footyAppStatus
     html = f"""
     <html>
       <head><meta charset="UTF-8"><title>Teams Maker</title><body>
