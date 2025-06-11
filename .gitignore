@@ -2,3 +2,8 @@ venv/*
 *.egg-info/
 *.idea/
 *.lp
+
+bin/*
+*.json
+*.html
+lambda_build/
