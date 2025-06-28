@@ -44,6 +44,39 @@ def create_alternating_list(length, n_teams):
     return result
 
 
+def decide_round_picking_order(df, n_teams):
+
+    if df['team'].isna().all():
+        teams_order = range(1, n_teams+1)
+    else:
+        sorted_groups = df.groupby('team').sum('score').sort_values('score')
+        teams_order = sorted_groups.index[:n_teams]
+
+    return list(teams_order)
+
+
+def pick_players_with_balance(df: pd.DataFrame,
+                               n_teams: int
+                               ) -> dict:
+    teams = dict()
+    df['team'] = None
+
+    while df['team'].isna().any():
+        avail_players = df[df['team'].isna()]
+        if len(avail_players) < n_teams:
+            idx_next_round = avail_players[:len(avail_players)].index
+            n_teams = len(avail_players)
+        else:
+            idx_next_round = avail_players[:n_teams].index
+        next_round = decide_round_picking_order(df, n_teams)
+        df.loc[idx_next_round, 'team'] = next_round
+
+    for team in df['team'].unique():
+        teams[team] = df.loc[df['team'] == team]
+
+    return teams
+
+
 def pick_players(df, n_teams):
     teams = dict()
 
@@ -123,7 +156,7 @@ def make_teams(n_teams, players_list):
             players_pool.loc[players_pool['name'] == name, 'score'] = tiers_values['C']
 
     players_pool = sort_by_rank_and_role(players_pool)
-    teams = pick_players(players_pool, n_teams)
+    teams = pick_players_with_balance(players_pool, n_teams)
     teams_df = format_output(teams, players_pool, n_teams)
 
     team_sheet_name = f"{n_teams}_teams"
