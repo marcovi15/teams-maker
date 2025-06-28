@@ -17,7 +17,7 @@ tiers_values = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
 def sort_by_rank_and_role(df):
     role_order = ['F', 'M', 'D']
     df['role'] = pd.Categorical(df['role'], categories=role_order, ordered=True)
-    sorted_df = df.sort_values(by=['role', 'score'], ascending=[True, False])
+    sorted_df = df.sort_values(by=['role', 'score'], ascending=[True, False]).reset_index(drop=True)
 
     return sorted_df
 
@@ -37,7 +37,42 @@ def create_alternating_list(length, n_teams):
     return result
 
 
-def pick_players(df, n_teams):
+def decide_round_picking_order(df, n_teams):
+
+    if df['team'].isna().all():
+        teams_order = range(1, n_teams+1)
+    else:
+        sorted_groups = df.groupby('team').sum('score').sort_values('score')
+        teams_order = sorted_groups.index[:n_teams]
+
+    return list(teams_order)
+
+
+def pick_players_with_balance(df: pd.DataFrame,
+                               n_teams: int
+                               ) -> dict:
+    teams = dict()
+    df['team'] = None
+
+    while df['team'].isna().any():
+        avail_players = df[df['team'].isna()]
+        if len(avail_players) < n_teams:
+            idx_next_round = avail_players[:len(avail_players)].index
+            n_teams = len(avail_players)
+        else:
+            idx_next_round = avail_players[:n_teams].index
+        next_round = decide_round_picking_order(df, n_teams)
+        df.loc[idx_next_round, 'team'] = next_round
+
+    for team in df['team'].unique():
+        teams[team] = df.loc[df['team'] == team]
+
+    return teams
+
+
+def pick_players_alternatively(df: pd.DataFrame,
+                               n_teams: int
+                               ) -> dict:
     teams = dict()
 
     df['team'] = create_alternating_list(len(df), n_teams)
@@ -93,7 +128,7 @@ def make_teams(players_list, n_teams):
 
     players_pool = sort_by_rank_and_role(players_pool)
 
-    teams = pick_players(players_pool, n_teams)
+    teams = pick_players_with_balance(players_pool, n_teams)
 
     format_output(teams, players_pool)
 
