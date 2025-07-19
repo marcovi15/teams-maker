@@ -5,7 +5,7 @@ import pandas as pd
 import random
 import os
 import warnings
-from data_paths import read_sign_up, read_db, publish_data
+from data_paths import read_sign_up, read_db, publish_data, read_volunteers
 import logging
 import json
 
@@ -88,6 +88,12 @@ def pick_players(df, n_teams):
     return teams
 
 
+def update_volunteers(players_db, list_of_volunteers, players_list):
+    # TODO: Fill this
+
+    pass
+
+
 def format_output_message(teams_dict, players_df, n_teams):
     """
     Print results while keeping it separate from inputs definition
@@ -118,15 +124,13 @@ def format_output(teams_dict, players_df, n_teams):
     return output_df
 
 
-def make_teams(n_teams, players_list):
+def make_teams(n_teams, players_list, players_db):
     """
     Wrapper for all other functions
     """
     # Make sure input names are unique
     players_list = list(set(players_list))
 
-    # Read players attributes from DB
-    players_db = read_db()
     players_db = players_db.sort_values('name')
 
     # Select available players from list and create a pool
@@ -162,8 +166,6 @@ def make_teams(n_teams, players_list):
     team_sheet_name = f"{n_teams}_teams"
     publish_data(teams_df, "saturday_football", team_sheet_name, 'teams-maker-key.json')
 
-    db_sheet_name = "database"
-    publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
     return teams_df
 
@@ -267,15 +269,23 @@ def save_output_page(html):
     page.close()
 
 
-def main():
+def main(test=False):
     logger.info("Script execution started.")
 
     players_list = read_sign_up()
+    players_db = read_db()
+    list_of_volunteers = read_volunteers()
 
     teams_dict = dict()
     for num_of_teams in [2, 3, 4]:
         logger.info(f"Making {num_of_teams} teams...")
-        teams_dict[num_of_teams] = make_teams(num_of_teams, players_list)
+        teams_dict[num_of_teams] = make_teams(num_of_teams, players_db, players_list)
+
+    if not test:
+        # TODO: Get test flag from google sheet
+        players_db = update_volunteers(players_db, list_of_volunteers, players_list)
+        db_sheet_name = "database"
+        publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
     html_page = create_html_page(teams_dict)
 
@@ -308,3 +318,6 @@ def lambda_handler(event, context):
         Body=json.dumps(return_message),
         ContentType='application/json'
     )
+
+if __name__ == '__main__':
+    main(test=True)

@@ -57,6 +57,24 @@ def read_sign_up():
     return players_pool
 
 
+def read_volunteers():
+    """
+    Reads who signed up for the event.
+    """
+
+    file_name = "saturday_football"
+    sheet_name = "volunteers"
+
+    df = read_sheet(file_name, sheet_name, 'teams-maker-key.json')
+    if df.empty:
+        warnings.warn("No volunteers!")
+        volunteers = []
+    else:
+        volunteers = list(df["volunteers"])
+
+    return volunteers
+
+
 def read_db():
     """
     Read players stats.
