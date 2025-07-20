@@ -77,7 +77,7 @@ jobs:
             aws lambda update-function-configuration \
               --function-name footyAppBackground \
               --layers ${{ steps.layer.outputs.LAYER_ARN }}
-            && break || sleep 5
+              && break || sleep 5
           done
 
       - name: Package and deploy footyApp
@@ -94,7 +94,7 @@ jobs:
             aws lambda update-function-configuration \
               --function-name footyApp \
               --layers ${{ steps.layer.outputs.LAYER_ARN }}
-            && break || sleep 5
+              && break || sleep 5
           done
 
       - name: Package and deploy footyAppStatus
@@ -111,5 +111,5 @@ jobs:
             aws lambda update-function-configuration \
               --function-name footyAppStatus \
               --layers ${{ steps.layer.outputs.LAYER_ARN }}
-            && break || sleep 5
+              && break || sleep 5
           done
