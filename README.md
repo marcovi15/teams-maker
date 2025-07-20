@@ -28,6 +28,10 @@ The logic is basically a linear programming optimisation that simulates the "cap
 
 When the teams are done, they are formatted into an HTML page and save into an S3 database, from which `footyAppStatus` will retrieve it.
 
+## main
+
+This mostly exists for testing purposes, e.g., if I want to add a new feature or change the teams-making logic.
+
 
 # Abbreviations in database
 
