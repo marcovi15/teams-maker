@@ -24,6 +24,7 @@ jobs:
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install --update
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -31,29 +32,78 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      - name: Deploy footyAppBackground.py
+      - name: Install dependencies
+        run: |
+          mkdir -p lambda_package
+          pip install --target=lambda_package -r requirements.txt
+
+      - name: Prepare footyAppBackground.py
         run: |
           mkdir -p lambda_package
           pip install --target=lambda_package -r requirements.txt
           cp footyAppBackground.py lambda_package/lambda_function.py
           cp data_paths.py lambda_package/
           zip -r footyAppBackground.zip lambda_package
-          aws lambda update-function-code --function-name footyAppBackground --zip-file fileb://footyAppBackground.zip
 
-      - name: Deploy footyApp.py
+      - name: Upload footyAppBackground to S3 and deploy from there
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
+        run: |
+          aws s3 cp footyAppBackground.zip s3://footy-lambda-deployment/lambdas/footyAppBackground.zip
+          aws lambda update-function-code \
+            --function-name footyAppBackground \
+            --s3-bucket footy-lambda-deployment \
+            --s3-key lambdas/footyAppBackground.zip
+
+      - name: Install dependencies
+        run: |
+          mkdir -p lambda_package
+          pip install --target=lambda_package -r requirements.txt
+
+      - name: Prepare footyApp.py
         run: |
           mkdir -p lambda_package
           pip install --target=lambda_package -r requirements.txt
           cp footyApp.py lambda_package/lambda_function.py
           cp lambda_package/
-          zip -r footyApp.zip lambda_package          
-          aws lambda update-function-code --function-name footyApp --zip-file fileb://footyApp.zip
+          zip -r footyApp.zip lambda_package
 
-      - name: Deploy footyAppStatus.py
+      - name: Upload footyApp to S3 and deploy from there
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
+        run: |
+          aws s3 cp footyApp.zip s3://footy-lambda-deployment/lambdas/footyApp.zip
+          aws lambda update-function-code \
+            --function-name footyApp \
+            --s3-bucket footy-lambda-deployment \
+            --s3-key lambdas/footyApp.zip
+
+      - name: Install dependencies
+        run: |
+          mkdir -p lambda_package
+          pip install --target=lambda_package -r requirements.txt
+
+
+      - name: Prepare footyAppStatus.py
         run: |
           mkdir -p lambda_package
           pip install --target=lambda_package -r requirements.txt
           cp footyAppStatus.py lambda_package/lambda_function.py
           cp lambda_package/
           zip -r footyAppStatus.zip lambda_package
-          aws lambda update-function-code --function-name footyAppStatus --zip-file fileb://footyAppStatus.zip
+
+      - name: Upload footyAppStatus to S3 and deploy from there
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
+        run: |
+          aws s3 cp footyAppStatus.zip s3://footy-lambda-deployment/lambdas/footyAppStatus.zip
+          aws lambda update-function-code \
+            --function-name footyApp \
+            --s3-bucket footy-lambda-deployment \
+            --s3-key lambdas/footyAppStatus.zip
