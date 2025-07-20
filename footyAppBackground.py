@@ -88,10 +88,15 @@ def pick_players(df, n_teams):
     return teams
 
 
-def update_volunteers(players_db, list_of_volunteers, players_list):
-    # TODO: Fill this
+def update_volunteers(players_db: pd.DataFrame,
+                      list_of_volunteers: list,
+                      players_list: list
+                      ) -> pd.DataFrame:
 
-    pass
+    players_db.loc[players_db['name'].isin(players_list), 'played'] += 1
+    players_db.loc[players_db['name'].isin(list_of_volunteers), 'helped'] += 1
+
+    return players_db
 
 
 def format_output_message(teams_dict, players_df, n_teams):
@@ -279,7 +284,7 @@ def main(test=False):
     teams_dict = dict()
     for num_of_teams in [2, 3, 4]:
         logger.info(f"Making {num_of_teams} teams...")
-        teams_dict[num_of_teams] = make_teams(num_of_teams, players_db, players_list)
+        teams_dict[num_of_teams] = make_teams(num_of_teams, players_list, players_db)
 
     if not test:
         # TODO: Get test flag from google sheet
@@ -320,4 +325,4 @@ def lambda_handler(event, context):
     )
 
 if __name__ == '__main__':
-    main(test=True)
+    main(test=False)
