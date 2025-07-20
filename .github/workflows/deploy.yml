@@ -76,8 +76,7 @@ jobs:
           for i in {1..5}; do
             aws lambda update-function-configuration \
               --function-name footyAppBackground \
-              --layers ${{ steps.layer.outputs.LAYER_ARN }}
-              && break || sleep 5
+              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
           done
 
       - name: Package and deploy footyApp
@@ -93,8 +92,7 @@ jobs:
           for i in {1..5}; do
             aws lambda update-function-configuration \
               --function-name footyApp \
-              --layers ${{ steps.layer.outputs.LAYER_ARN }}
-              && break || sleep 5
+              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
           done
 
       - name: Package and deploy footyAppStatus
@@ -110,6 +108,5 @@ jobs:
           for i in {1..5}; do
             aws lambda update-function-configuration \
               --function-name footyAppStatus \
-              --layers ${{ steps.layer.outputs.LAYER_ARN }}
-              && break || sleep 5
+              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
           done
