@@ -53,6 +53,11 @@ jobs:
         run: |
           echo "LAYER_ARN=$(jq -r .LayerVersionArn layer_output.json)" >> $GITHUB_OUTPUT
 
+      - name: Recreate secret JSON files
+        run: |
+          echo "${{ secrets.PLAYERS_DB_KEY_BASE64 }}" | base64 -d > players-db-key.json
+          echo "${{ secrets.TEAMS_MAKER_KEY_BASE64 }}" | base64 -d > teams-maker-key.json
+
       # -------------------------------
       # STEP 2: Deploy Lambdas (code only)
       # -------------------------------
