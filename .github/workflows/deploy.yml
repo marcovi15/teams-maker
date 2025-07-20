@@ -33,7 +33,7 @@ jobs:
 
       - name: Deploy footyAppBackground.py
         run: |
-          cp footyAppBackground.py lambda_function.py
+          cp footyAppBackground.py lambda_function.py data_paths.py
           zip footyAppBackground.zip lambda_function.py
           aws lambda update-function-code --function-name footyAppBackground --zip-file fileb://footyAppBackground.zip
 
