@@ -40,9 +40,10 @@ jobs:
           mkdir -p python
           pip install -r requirements.txt -t python/
           zip -r dependencies_layer.zip python
+          aws s3 cp dependencies_layer.zip s3://footy-lambda-deployment/layers/dependencies_layer.zip
           aws lambda publish-layer-version \
             --layer-name footy-dependencies \
-            --zip-file fileb://dependencies_layer.zip \
+            --content S3Bucket=footy-lambda-deployment,S3Key=layers/dependencies_layer.zip \
             --compatible-runtimes python3.11 \
             --region eu-north-1 \
             --output json > layer_output.json
