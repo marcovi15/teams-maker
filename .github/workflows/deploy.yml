@@ -1,0 +1,47 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - deploy-with-googlesheet
+
+jobs:
+  deploy:
+    name: Deploy Lambda Functions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: Deploy footyAppBackground.py
+        run: |
+          zip footyAppBackground.zip footyAppBackground.py
+          aws lambda update-function-code --function-name footyAppBackground --zip-file fileb://footyAppBackground.zip
+
+      - name: Deploy footyApp.py
+        run: |
+          zip footyApp.zip footyApp.py
+          aws lambda update-function-code --function-name footyApp --zip-file fileb://footyApp.zip
+
+      - name: Deploy footyAppStatus.py
+        run: |
+          zip footyAppStatus.zip footyAppStatus.py
+          aws lambda update-function-code --function-name footyAppStatus --zip-file fileb://footyAppStatus.zip
