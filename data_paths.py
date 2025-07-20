@@ -72,7 +72,9 @@ def read_volunteers():
     else:
         volunteers = list(df["volunteers"])
 
-    return volunteers
+    test_flag = df['test'].any()
+
+    return volunteers, test_flag
 
 
 def read_db():
