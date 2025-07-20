@@ -33,18 +33,30 @@ jobs:
 
       - name: Deploy footyAppBackground.py
         run: |
-          cp footyAppBackground.py lambda_function.py
-          zip footyAppBackground.zip lambda_function.py data_paths.py
+          mkdir -p lambda_package
+          pip install --target=lambda_package -r requirements.txt
+          cp footyAppBackground.py lambda_package/lambda_function.py
+          cp data_paths.py lambda_package/
+          cd lambda_package
+          zip -r ../footyAppBackground.zip .
           aws lambda update-function-code --function-name footyAppBackground --zip-file fileb://footyAppBackground.zip
 
       - name: Deploy footyApp.py
         run: |
-          cp footyApp.py lambda_function.py
-          zip footyApp.zip lambda_function.py
+          mkdir -p lambda_package
+          pip install --target=lambda_package -r requirements.txt
+          cp footyApp.py lambda_package/lambda_function.py
+          cp lambda_package/
+          cd lambda_package
+          zip -r ../footyApp.zip .          
           aws lambda update-function-code --function-name footyApp --zip-file fileb://footyApp.zip
 
       - name: Deploy footyAppStatus.py
         run: |
-          cp footyAppStatus.py lambda_function.py
-          zip footyAppStatus.zip lambda_function.py
+          mkdir -p lambda_package
+          pip install --target=lambda_package -r requirements.txt
+          cp footyAppStatus.py lambda_package/lambda_function.py
+          cp lambda_package/
+          cd lambda_package
+          zip -r ../footyAppStatus.zip .
           aws lambda update-function-code --function-name footyAppStatus --zip-file fileb://footyAppStatus.zip
