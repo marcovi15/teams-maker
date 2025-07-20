@@ -274,20 +274,19 @@ def save_output_page(html):
     page.close()
 
 
-def main(test=False):
+def main():
     logger.info("Script execution started.")
 
     players_list = read_sign_up()
     players_db = read_db()
-    list_of_volunteers = read_volunteers()
+    list_of_volunteers, test_flag = read_volunteers()
 
     teams_dict = dict()
     for num_of_teams in [2, 3, 4]:
         logger.info(f"Making {num_of_teams} teams...")
         teams_dict[num_of_teams] = make_teams(num_of_teams, players_list, players_db)
 
-    if not test:
-        # TODO: Get test flag from google sheet
+    if not test_flag:
         players_db = update_volunteers(players_db, list_of_volunteers, players_list)
         db_sheet_name = "database"
         publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
@@ -325,4 +324,4 @@ def lambda_handler(event, context):
     )
 
 if __name__ == '__main__':
-    main(test=False)
+    main()
