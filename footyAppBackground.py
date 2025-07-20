@@ -99,6 +99,28 @@ def update_volunteers(players_db: pd.DataFrame,
     return players_db
 
 
+def find_dodgers(players_db: pd.DataFrame
+                 ) -> str:
+
+    # Number of times you should have played to be considered a regular
+    regulars_definition = 3
+    regulars_mask = players_db['played'] > regulars_definition
+    dodgers_ranked = players_db[regulars_mask].sort_values(by=['helped', 'played'], ascending=[True, False])
+
+    max_num_dodgers = 4
+    if len(dodgers_ranked) == 0:
+        dodgers = "Not enough data to suggest volunteers."
+    elif (len(dodgers_ranked) <= max_num_dodgers) & (len(dodgers_ranked) > 0):
+        list_of_dodgers = ', '.join(dodgers_ranked['name'].astype(str))
+        dodgers = f"Recommended volunteers: {list_of_dodgers}."
+    else:
+        dodgers_ranked = dodgers_ranked[:max_num_dodgers-1]
+        list_of_dodgers = ', '.join(dodgers_ranked['name'].astype(str))
+        dodgers = f"Recommended volunteers: {list_of_dodgers}."
+
+    return dodgers
+
+
 def format_output_message(teams_dict, players_df, n_teams):
     """
     Print results while keeping it separate from inputs definition
@@ -175,7 +197,7 @@ def make_teams(n_teams, players_list, players_db):
     return teams_df
 
 
-def create_html_page(teams_dict):
+def create_html_page(teams_dict, recommended_volunteers):
     team_format = {
         2: {
             "bibs": ["(bibs)", "(non-bibs)"],
@@ -193,48 +215,51 @@ def create_html_page(teams_dict):
         }
     }
 
-    html = """
+    html = f"""
     <html>
         <head>
             <meta charset="UTF-8">
             <title>Teams Maker</title>
             <style>
-                body {
+                body {{
                     font-family: Arial, sans-serif;
                     background-color: #f9f9f9;
                     padding: 30px;
                     text-align: center;
-                }
-                h1, h2, h3 {
+                }}
+                h1, h2, h3 {{
                     color: #333;
-                }
-                img {
+                }}
+                img {{
                     margin-top: 20px;
                     width: 250px;
-                }
-                .teams-section {
+                }}
+                .teams-section {{
                     text-align: left;
                     margin-top: 60px;
-                }
-                .group {
+                }}
+                .group {{
                     margin-bottom: 40px;
-                }
-                .team {
+                }}
+                .team {{
                     background-color: #ffffff;
                     padding: 15px;
                     margin: 10px 0;
                     border-radius: 8px;
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-                }
-                ul {
+                }}
+                ul {{
                     padding-left: 20px;
-                }
+                }}
             </style>
         </head>
         <body>
             <h1>&#128640; Success!</h1>
             <p>&#9917; Teams are ready. &#9917;</p>
             <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG5taTdwYjV0bXJma21qc3lsNmluaGpvN3RiN25pNWI1bHJ6MjFjcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/elatsjsGzdLtNov4Ky/giphy.gif" alt="Success GIF" />
+            
+            <p><span style="color: blue; font-size: 1.2em;">{recommended_volunteers}</span></p>
+                
 
             <div class="teams-section">
                 <h2>Team Assignments</h2>
@@ -291,9 +316,11 @@ def main():
         db_sheet_name = "database"
         publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
-    html_page = create_html_page(teams_dict)
+    recommended_volunteers = find_dodgers(players_db)
 
-    # save_output_page(html_page)
+    html_page = create_html_page(teams_dict, recommended_volunteers)
+
+    save_output_page(html_page)
 
     logger.info("Script execution completed!")
 
