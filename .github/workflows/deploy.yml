@@ -37,8 +37,7 @@ jobs:
           pip install --target=lambda_package -r requirements.txt
           cp footyAppBackground.py lambda_package/lambda_function.py
           cp data_paths.py lambda_package/
-          cd lambda_package
-          zip -r ../footyAppBackground.zip .
+          zip -r footyAppBackground.zip lambda_package
           aws lambda update-function-code --function-name footyAppBackground --zip-file fileb://footyAppBackground.zip
 
       - name: Deploy footyApp.py
@@ -47,8 +46,7 @@ jobs:
           pip install --target=lambda_package -r requirements.txt
           cp footyApp.py lambda_package/lambda_function.py
           cp lambda_package/
-          cd lambda_package
-          zip -r ../footyApp.zip .          
+          zip -r footyApp.zip lambda_package          
           aws lambda update-function-code --function-name footyApp --zip-file fileb://footyApp.zip
 
       - name: Deploy footyAppStatus.py
@@ -57,6 +55,5 @@ jobs:
           pip install --target=lambda_package -r requirements.txt
           cp footyAppStatus.py lambda_package/lambda_function.py
           cp lambda_package/
-          cd lambda_package
-          zip -r ../footyAppStatus.zip .
+          zip -r footyAppStatus.zip lambda_package
           aws lambda update-function-code --function-name footyAppStatus --zip-file fileb://footyAppStatus.zip
