@@ -37,8 +37,9 @@ jobs:
       # -------------------------------
       - name: Create and upload Lambda dependency layer
         run: |
+          rm -rf python dependencies_layer.zip
           mkdir -p python
-          pip install -r requirements.txt -t python/
+          pip install --upgrade --no-cache-dir --only-binary=:all: -r requirements.txt -t python/
           zip -r dependencies_layer.zip python
           aws s3 cp dependencies_layer.zip s3://footy-lambda-deployment/layers/dependencies_layer.zip
           aws lambda publish-layer-version \
