@@ -63,11 +63,9 @@ jobs:
       # -------------------------------
       - name: Package and deploy footyAppBackground
         run: |
-          mkdir -p lambda_package
-          cp footyAppBackground.py lambda_package/lambda_function.py
-          cp data_paths.py lambda_package/
-          cp players-db-key.json teams-maker-key.json lambda_package/
-          zip -r footyAppBackground.zip lambda_package
+          cp footyAppBackground.py lambda_function.py
+          zip -r footyAppBackground.zip lambda_function.py data_paths.py players-db-key.json teams-maker-key.json
+          rm lambda_function.py
           aws s3 cp footyAppBackground.zip s3://footy-lambda-deployment/lambdas/footyAppBackground.zip
           aws lambda update-function-code \
             --function-name footyAppBackground \
@@ -81,9 +79,9 @@ jobs:
 
       - name: Package and deploy footyApp
         run: |
-          mkdir -p lambda_package
-          cp footyApp.py lambda_package/lambda_function.py
-          zip -r footyApp.zip lambda_package
+          cp footyApp.py lambda_function.py
+          zip -r footyApp.zip lambda_function.py
+          rm lambda_function.py
           aws s3 cp footyApp.zip s3://footy-lambda-deployment/lambdas/footyApp.zip
           aws lambda update-function-code \
             --function-name footyApp \
@@ -97,9 +95,9 @@ jobs:
 
       - name: Package and deploy footyAppStatus
         run: |
-          mkdir -p lambda_package
-          cp footyAppStatus.py lambda_package/lambda_function.py
-          zip -r footyAppStatus.zip lambda_package
+          cp footyAppStatus.py lambda_function.py
+          zip -r footyAppStatus.zip lambda_function.py
+          rm lambda_function.py
           aws s3 cp footyAppStatus.zip s3://footy-lambda-deployment/lambdas/footyAppStatus.zip
           aws lambda update-function-code \
             --function-name footyAppStatus \
