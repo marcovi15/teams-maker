@@ -19,7 +19,7 @@ tiers_values = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
 
 
 def sort_by_rank_and_role(df):
-    role_order = ['F', 'M', 'D']
+    role_order = ['F', 'M', 'D', 'G']
     df['role'] = pd.Categorical(df['role'], categories=role_order, ordered=True)
     sorted_df = df.sort_values(by=['role', 'score'], ascending=[True, False])
 
@@ -311,7 +311,7 @@ def main():
         logger.info(f"Making {num_of_teams} teams...")
         teams_dict[num_of_teams] = make_teams(num_of_teams, players_list, players_db)
 
-    if not test_flag:
+    if test_flag == 'FALSE':
         players_db = update_volunteers(players_db, list_of_volunteers, players_list)
         db_sheet_name = "database"
         publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')

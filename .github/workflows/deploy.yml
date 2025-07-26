@@ -35,77 +35,59 @@ jobs:
       # -------------------------------
       # STEP 1: Create & upload Lambda Layer
       # -------------------------------
-      - name: Create and upload Lambda dependency layer
-        run: |
-          rm -rf python dependencies_layer.zip
-          mkdir -p python
-          pip install --upgrade --no-cache-dir --only-binary=:all: -r requirements.txt -t python/
-          zip -r dependencies_layer.zip python
-          aws s3 cp dependencies_layer.zip s3://footy-lambda-deployment/layers/dependencies_layer.zip
-          aws lambda publish-layer-version \
-            --layer-name footy-dependencies \
-            --content S3Bucket=footy-lambda-deployment,S3Key=layers/dependencies_layer.zip \
-            --compatible-runtimes python3.11 \
-            --region eu-north-1 \
-            --output json > layer_output.json
-
-      - name: Extract Layer ARN
-        id: layer
-        run: |
-          echo "LAYER_ARN=$(jq -r .LayerVersionArn layer_output.json)" >> $GITHUB_OUTPUT
-
-      - name: Recreate secret JSON files
-        run: |
-          echo "${{ secrets.PLAYERS_DB_KEY_BASE64 }}" | base64 -d > players-db-key.json
-          echo "${{ secrets.TEAMS_MAKER_KEY_BASE64 }}" | base64 -d > teams-maker-key.json
+#      - name: Create and upload Lambda dependency layer
+#        run: |
+#          rm -rf python dependencies_layer.zip
+#          mkdir -p python
+#          pip install --upgrade --no-cache-dir --only-binary=:all: -r requirements.txt -t python/
+#          zip -r dependencies_layer.zip python
+#          aws s3 cp dependencies_layer.zip s3://footy-lambda-deployment/layers/dependencies_layer.zip
+#          aws lambda publish-layer-version \
+#            --layer-name footy-dependencies \
+#            --content S3Bucket=footy-lambda-deployment,S3Key=layers/dependencies_layer.zip \
+#            --compatible-runtimes python3.11 \
+#            --region eu-north-1 \
+#            --output json > layer_output.json
+#
+#      - name: Extract Layer ARN
+#        id: layer
+#        run: |
+#          echo "LAYER_ARN=$(jq -r .LayerVersionArn layer_output.json)" >> $GITHUB_OUTPUT
+#
+#      - name: Recreate secret JSON files
+#        run: |
+#          echo "${{ secrets.PLAYERS_DB_KEY_BASE64 }}" | base64 -d > players-db-key.json
+#          echo "${{ secrets.TEAMS_MAKER_KEY_BASE64 }}" | base64 -d > teams-maker-key.json
 
       # -------------------------------
       # STEP 2: Deploy Lambdas (code only)
       # -------------------------------
-      - name: Package and deploy footyAppBackground
-        run: |
-          cp footyAppBackground.py lambda_function.py
-          zip -r footyAppBackground.zip lambda_function.py data_paths.py players-db-key.json teams-maker-key.json
-          rm lambda_function.py
-          aws s3 cp footyAppBackground.zip s3://footy-lambda-deployment/lambdas/footyAppBackground.zip
-          aws lambda update-function-code \
-            --function-name footyAppBackground \
-            --s3-bucket footy-lambda-deployment \
-            --s3-key lambdas/footyAppBackground.zip
-          for i in {1..5}; do
-            aws lambda update-function-configuration \
-              --function-name footyAppBackground \
-              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
-          done
+#      - name: Package and deploy footyAppBackground
+#        run: |
+#          cp footyAppBackground.py lambda_function.py
+#          zip -r update.zip lambda_function.py
+#          rm lambda_function.py
+#          aws lambda update-function-code --function-name my-function-name --zip-file fileb://update.zip
 
       - name: Package and deploy footyApp
         run: |
           cp footyApp.py lambda_function.py
-          zip -r footyApp.zip lambda_function.py
+          zip -r update.zip lambda_function.py
           rm lambda_function.py
-          aws s3 cp footyApp.zip s3://footy-lambda-deployment/lambdas/footyApp.zip
-          aws lambda update-function-code \
-            --function-name footyApp \
-            --s3-bucket footy-lambda-deployment \
-            --s3-key lambdas/footyApp.zip
-          for i in {1..5}; do
-            aws lambda update-function-configuration \
-              --function-name footyApp \
-              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
-          done
+          aws lambda update-function-code --function-name lambda_function --zip-file fileb://update.zip
 
-      - name: Package and deploy footyAppStatus
-        run: |
-          cp footyAppStatus.py lambda_function.py
-          zip -r footyAppStatus.zip lambda_function.py
-          rm lambda_function.py
-          aws s3 cp footyAppStatus.zip s3://footy-lambda-deployment/lambdas/footyAppStatus.zip
-          aws lambda update-function-code \
-            --function-name footyAppStatus \
-            --s3-bucket footy-lambda-deployment \
-            --s3-key lambdas/footyAppStatus.zip
-          for i in {1..5}; do
-            aws lambda update-function-configuration \
-              --function-name footyAppStatus \
-              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
-          done
+#      - name: Package and deploy footyAppStatus
+#        run: |
+#          cp footyAppStatus.py lambda_function.py
+#          zip -r footyAppStatus.zip lambda_function.py
+#          rm lambda_function.py
+#          aws s3 cp footyAppStatus.zip s3://footy-lambda-deployment/lambdas/footyAppStatus.zip
+#          aws lambda update-function-code \
+#            --function-name footyAppStatus \
+#            --s3-bucket footy-lambda-deployment \
+#            --s3-key lambdas/footyAppStatus.zip
+#          for i in {1..5}; do
+#            aws lambda update-function-configuration \
+#              --function-name footyAppStatus \
+#              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
+#          done
