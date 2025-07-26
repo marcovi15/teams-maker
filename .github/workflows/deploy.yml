@@ -76,18 +76,9 @@ jobs:
           rm lambda_function.py
           aws lambda update-function-code --function-name footyApp --zip-file fileb://update.zip
 
-#      - name: Package and deploy footyAppStatus
-#        run: |
-#          cp footyAppStatus.py lambda_function.py
-#          zip -r footyAppStatus.zip lambda_function.py
-#          rm lambda_function.py
-#          aws s3 cp footyAppStatus.zip s3://footy-lambda-deployment/lambdas/footyAppStatus.zip
-#          aws lambda update-function-code \
-#            --function-name footyAppStatus \
-#            --s3-bucket footy-lambda-deployment \
-#            --s3-key lambdas/footyAppStatus.zip
-#          for i in {1..5}; do
-#            aws lambda update-function-configuration \
-#              --function-name footyAppStatus \
-#              --layers ${{ steps.layer.outputs.LAYER_ARN }} && { echo "Success"; break; } || { echo "Retrying..."; sleep 5; }
-#          done
+      - name: Package and deploy footyAppStatus
+        run: |
+          cp footyAppStatus.py lambda_function.py
+          zip -r update.zip lambda_function.py
+          rm lambda_function.py
+          aws lambda update-function-code --function-name footyAppStatus --zip-file fileb://update.zip
