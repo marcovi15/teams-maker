@@ -74,7 +74,7 @@ jobs:
           cp footyApp.py lambda_function.py
           zip -r update.zip lambda_function.py
           rm lambda_function.py
-          aws lambda update-function-code --function-name lambda_function --zip-file fileb://update.zip
+          aws lambda update-function-code --function-name footyApp --zip-file fileb://update.zip
 
 #      - name: Package and deploy footyAppStatus
 #        run: |
