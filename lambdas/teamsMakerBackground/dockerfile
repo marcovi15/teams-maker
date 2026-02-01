@@ -7,17 +7,15 @@ ENV PYTHONUNBUFFERED=1
 # Upgrade build tooling FIRST
 RUN pip install --upgrade pip setuptools wheel
 
+# Copy application code
+COPY . ${LAMBDA_TASK_ROOT}
+
 # Install dependencies
-COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY app.py .
-COPY data_paths.py .
-
 # Copy Google service account keys
-COPY teams-maker-key.json .
-COPY players-db-key.json .
+# COPY teams-maker-key.json .
+# COPY players-db-key.json .
 
 # Lambda entry point
 CMD ["app.lambda_handler"]

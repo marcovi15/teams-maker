@@ -1,4 +1,4 @@
-from lambdas.footyAppBackground.data_paths import read_db
+from lambdas.teamsMakerBackground.data_paths import read_db
 
 players_db = read_db()
 

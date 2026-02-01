@@ -9,12 +9,12 @@ def lambda_handler(event, context):
     lambda_client = boto3.client('lambda')
 
     lambda_client.invoke(
-        FunctionName='footyAppBackground',
+        FunctionName='teamsMakerBackground',
         InvocationType='Event',
         Payload=json.dumps({'request_id': request_id})
     )
 
-    # The function URL points to footyAppStatus
+    # The function URL points to teamsMakerStatus
     html = f"""
     <html>
       <head><meta charset="UTF-8"><title>Teams Maker</title><body>

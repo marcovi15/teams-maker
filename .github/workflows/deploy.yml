@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: eu-north-1
-  ACCOUNT_ID:
+  ACCOUNT_ID: 881287412835
 
 jobs:
   deploy:
@@ -30,9 +30,9 @@ jobs:
       - name: Build and deploy Lambdas
         run: |
           declare -A LAMBDAS=(
-            [footyApp]=footyapp
-            [footyAppStatus]=footyappstatus
-            [footyAppBackground]=footyappbackground
+            [teamsMakerFront]=teamsmakerfront
+            [teamsMakerStatus]=teamsmakerstatus
+            [teamsMakerBackground]=teamsmakerbackground
           )
 
           for FUNCTION in "${!LAMBDAS[@]}"; do
