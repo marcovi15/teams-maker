@@ -294,7 +294,7 @@ def create_html_page(teams_dict, recommended_volunteers):
 
 
 def save_output_page(html):
-    page = open("footy_script_results.html", "w")
+    page = open("../../footy_script_results.html", "w")
     page.write(html)
     page.close()
 

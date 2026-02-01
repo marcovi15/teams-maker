@@ -1,0 +1,5 @@
+gspread
+google-auth
+gspread-dataframe
+pandas
+numpy
