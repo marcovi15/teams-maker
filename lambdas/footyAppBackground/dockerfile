@@ -1,0 +1,20 @@
+FROM public.ecr.aws/lambda/python:3.11
+
+# Prevent Python from writing pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app.py .
+COPY data_paths.py .
+
+# Copy Google service account keys
+COPY teams-maker-key.json .
+COPY players-db-key.json .
+
+# Lambda entry point
+CMD ["app.lambda_handler"]
