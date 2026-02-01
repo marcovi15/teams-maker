@@ -1,29 +1,21 @@
-name: Deploy to AWS
+name: Deploy FootyApp Lambdas
 
 on:
   push:
     branches:
       - deployment-branch
 
+env:
+  AWS_REGION: eu-north-1
+  ACCOUNT_ID:
+
 jobs:
   deploy:
-    name: Deploy Lambda Functions
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install AWS CLI
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install --update
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -32,53 +24,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      # -------------------------------
-      # STEP 1: Create & upload Lambda Layer
-      # -------------------------------
-#      - name: Create and upload Lambda dependency layer
-#        run: |
-#          rm -rf python dependencies_layer.zip
-#          mkdir -p python
-#          pip install --upgrade --no-cache-dir --only-binary=:all: -r requirements.txt -t python/
-#          zip -r dependencies_layer.zip python
-#          aws s3 cp dependencies_layer.zip s3://footy-lambda-deployment/layers/dependencies_layer.zip
-#          aws lambda publish-layer-version \
-#            --layer-name footy-dependencies \
-#            --content S3Bucket=footy-lambda-deployment,S3Key=layers/dependencies_layer.zip \
-#            --compatible-runtimes python3.11 \
-#            --region eu-north-1 \
-#            --output json > layer_output.json
-#
-#      - name: Extract Layer ARN
-#        id: layer
-#        run: |
-#          echo "LAYER_ARN=$(jq -r .LayerVersionArn layer_output.json)" >> $GITHUB_OUTPUT
-#
-#      - name: Recreate secret JSON files
-#        run: |
-#          echo "${{ secrets.PLAYERS_DB_KEY_BASE64 }}" | base64 -d > players-db-key.json
-#          echo "${{ secrets.TEAMS_MAKER_KEY_BASE64 }}" | base64 -d > teams-maker-key.json
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-      # -------------------------------
-      # STEP 2: Deploy Lambdas (code only)
-      # -------------------------------
-#      - name: Package and deploy footyAppBackground
-#        run: |
-#          cp footyAppBackground.py lambda_function.py
-#          zip -r update.zip lambda_function.py
-#          rm lambda_function.py
-#          aws lambda update-function-code --function-name my-function-name --zip-file fileb://update.zip
-
-      - name: Package and deploy footyApp
+      - name: Build and deploy Lambdas
         run: |
-          cp footyApp.py lambda_function.py
-          zip -r update.zip lambda_function.py
-          rm lambda_function.py
-          aws lambda update-function-code --function-name footyApp --zip-file fileb://update.zip
+          declare -A LAMBDAS=(
+            [footyApp]=footyapp
+            [footyAppStatus]=footyappstatus
+            [footyAppBackground]=footyappbackground
+          )
 
-      - name: Package and deploy footyAppStatus
-        run: |
-          cp footyAppStatus.py lambda_function.py
-          zip -r update.zip lambda_function.py
-          rm lambda_function.py
-          aws lambda update-function-code --function-name footyAppStatus --zip-file fileb://update.zip
+          for FUNCTION in "${!LAMBDAS[@]}"; do
+            REPO=${LAMBDAS[$FUNCTION]}
+            IMAGE_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO}:latest
+
+            echo "Building $FUNCTION..."
+            docker build -t $IMAGE_URI lambdas/$FUNCTION
+
+            docker push $IMAGE_URI
+
+            aws lambda update-function-code \
+              --function-name $FUNCTION \
+              --image-uri $IMAGE_URI
+          done
