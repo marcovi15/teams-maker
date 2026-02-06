@@ -8,3 +8,4 @@ lambda_build/*
 *.json
 lambda_build/
 __pycache__
+*.zip

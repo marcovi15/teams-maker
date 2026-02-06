@@ -316,7 +316,8 @@ def main():
         db_sheet_name = "database"
         publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
-    recommended_volunteers = find_dodgers(players_db)
+    # recommended_volunteers = find_dodgers(players_db)
+    recommended_volunteers = ['test', 'test', 'test']
 
     html_page = create_html_page(teams_dict, recommended_volunteers)
 
