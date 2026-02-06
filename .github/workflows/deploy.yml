@@ -3,18 +3,17 @@ name: Deploy FootyApp Lambdas
 on:
   push:
     branches:
-      - deployment-branch
-
-env:
-  AWS_REGION: eu-north-1
-  ACCOUNT_ID: 881287412835
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -22,29 +21,51 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-north-1
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and deploy Lambdas
+      # ---------- FRONT ----------
+      - name: Build teamsMakerFront ZIP
         run: |
-          declare -A LAMBDAS=(
-            [teamsMakerFront]=teamsmakerfront
-            [teamsMakerStatus]=teamsmakerstatus
-            [teamsMakerBackground]=teamsmakerbackground
-          )
+          docker build -t front-builder lambdas/teamsMakerFront
+          docker run --rm -v "$PWD:/out" front-builder \
+            sh -c "cp /build/lambda.zip /out/teamsMakerFront.zip"
 
-          for FUNCTION in "${!LAMBDAS[@]}"; do
-            REPO=${LAMBDAS[$FUNCTION]}
-            IMAGE_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO}:latest
+      - name: Deploy teamsMakerFront
+        run: |
+          aws lambda update-function-code \
+            --function-name teamsMakerFront \
+            --zip-file fileb://teamsMakerFront.zip
 
-            echo "Building $FUNCTION..."
-            docker build -t $IMAGE_URI lambdas/$FUNCTION
+      # ---------- BACKGROUND ----------
+      - name: Build teamsMakerBackground ZIP
+        run: |
+          docker build -t background-builder lambdas/teamsMakerBackground
+          docker run --rm -v "$PWD:/out" background-builder \
+            sh -c "cp /build/lambda.zip /out/teamsMakerBackground.zip"
 
-            docker push $IMAGE_URI
+      - name: Deploy teamsMakerBackground
+        run: |
+          aws lambda update-function-code \
+            --function-name teamsMakerBackground \
+            --zip-file fileb://teamsMakerBackground.zip
 
-            aws lambda update-function-code \
-              --function-name $FUNCTION \
-              --image-uri $IMAGE_URI
-          done
+      # ---------- STATUS ----------
+      - name: Build teamsMakerStatus ZIP
+        run: |
+          docker build -t status-builder lambdas/teamsMakerStatus
+          docker run --rm -v "$PWD:/out" status-builder \
+            sh -c "cp /build/lambda.zip /out/teamsMakerStatus.zip"
+
+      - name: Deploy teamsMakerStatus
+        run: |
+          aws lambda update-function-code \
+            --function-name teamsMakerStatus \
+            --zip-file fileb://teamsMakerStatus.zip
+
+      # ---------- CLEANUP ----------
+      - name: Cleanup build artifacts
+        if: always()
+        run: |
+          rm -f teamsMakerFront.zip
+          rm -f teamsMakerBackground.zip
+          rm -f teamsMakerStatus.zip
