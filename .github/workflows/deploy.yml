@@ -1,0 +1,71 @@
+name: Deploy FootyApp Lambdas
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # ---------- FRONT ----------
+      - name: Build teamsMakerFront ZIP
+        run: |
+          docker build -t front-builder lambdas/teamsMakerFront
+          docker run --rm -v "$PWD:/out" front-builder \
+            sh -c "cp /build/lambda.zip /out/teamsMakerFront.zip"
+
+      - name: Deploy teamsMakerFront
+        run: |
+          aws lambda update-function-code \
+            --function-name teamsMakerFront \
+            --zip-file fileb://teamsMakerFront.zip
+
+      # ---------- BACKGROUND ----------
+      - name: Build teamsMakerBackground ZIP
+        run: |
+          docker build -t background-builder lambdas/teamsMakerBackground
+          docker run --rm -v "$PWD:/out" background-builder \
+            sh -c "cp /build/lambda.zip /out/teamsMakerBackground.zip"
+
+      - name: Deploy teamsMakerBackground
+        run: |
+          aws lambda update-function-code \
+            --function-name teamsMakerBackground \
+            --zip-file fileb://teamsMakerBackground.zip
+
+      # ---------- STATUS ----------
+      - name: Build teamsMakerStatus ZIP
+        run: |
+          docker build -t status-builder lambdas/teamsMakerStatus
+          docker run --rm -v "$PWD:/out" status-builder \
+            sh -c "cp /build/lambda.zip /out/teamsMakerStatus.zip"
+
+      - name: Deploy teamsMakerStatus
+        run: |
+          aws lambda update-function-code \
+            --function-name teamsMakerStatus \
+            --zip-file fileb://teamsMakerStatus.zip
+
+      # ---------- CLEANUP ----------
+      - name: Cleanup build artifacts
+        if: always()
+        run: |
+          rm -f teamsMakerFront.zip
+          rm -f teamsMakerBackground.zip
+          rm -f teamsMakerStatus.zip

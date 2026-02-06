@@ -2,3 +2,10 @@ venv/*
 *.egg-info/
 *.idea/
 *.lp
+bin/*
+*.html
+lambda_build/*
+*.json
+lambda_build/
+__pycache__
+*.zip

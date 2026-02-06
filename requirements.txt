@@ -1,2 +1,6 @@
-numpy
+gspread
+google-auth
+gspread-dataframe
+boto3
 pandas
+numpy
