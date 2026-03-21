@@ -4,3 +4,4 @@ gspread-dataframe
 boto3
 pandas
 numpy
+google-genai

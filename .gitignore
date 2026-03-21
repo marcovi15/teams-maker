@@ -9,3 +9,4 @@ lambda_build/*
 lambda_build/
 __pycache__
 *.zip
+.env
