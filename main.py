@@ -5,6 +5,8 @@ import pandas as pd
 import random
 import os
 import warnings
+import itertools
+
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 players_db_path = os.path.join(BASEDIR, "players_db.csv")
@@ -46,6 +48,125 @@ def decide_round_picking_order(df, n_teams):
         teams_order = sorted_groups.index[:n_teams]
 
     return list(teams_order)
+
+
+def split_players_within_area(df, n_teams):
+
+    players = df.to_dict('records')
+    n = len(players)
+
+    base_size = n // n_teams
+    remainder = n % n_teams  # how many groups will have +1 player
+
+    # Target sizes: e.g. [3,3,2,2] if uneven
+    target_sizes = [base_size + (1 if i < remainder else 0) for i in range(n_teams)]
+
+    best_partition = None
+    best_variance = float('inf')
+
+    for assignment in itertools.product(range(n_teams), repeat=n):
+        sizes = [0] * n_teams
+
+        # Count sizes quickly first (early pruning)
+        for g in assignment:
+            sizes[g] += 1
+
+        if sorted(sizes) != sorted(target_sizes):
+            continue
+
+        # Compute totals
+        totals = [0] * n_teams
+        for i, g in enumerate(assignment):
+            totals[g] += players[i]['score']
+
+        variance = np.var(totals)
+
+        if variance < best_variance:
+            best_variance = variance
+            best_assignment = assignment
+
+    result_df = df.copy()
+    result_df["team"] = best_assignment
+
+    return result_df
+
+
+def rebalance_by_swaps(df, max_iter=25):
+    df = df.copy()
+
+    for _ in range(max_iter):
+        team_totals = df.groupby('team')['score'].sum()
+        current_gap = team_totals.max() - team_totals.min()
+
+        best_improvement = 0
+        best_move = None
+
+        teams = df['team'].unique()
+        roles = df['role'].unique()
+
+        # Try all (team_a, team_b, role) combinations
+        for team_a, team_b in itertools.combinations(teams, 2):
+            total_a = team_totals[team_a]
+            total_b = team_totals[team_b]
+
+            for role in roles:
+                mask_a = (df['team'] == team_a) & (df['role'] == role)
+                mask_b = (df['team'] == team_b) & (df['role'] == role)
+
+                if not mask_a.any() and not mask_b.any():
+                    continue
+
+                sum_a = df.loc[mask_a, 'score'].sum()
+                sum_b = df.loc[mask_b, 'score'].sum()
+
+                # simulate swap
+                new_total_a = total_a - sum_a + sum_b
+                new_total_b = total_b - sum_b + sum_a
+
+                # recompute new totals array
+                new_totals = team_totals.copy()
+                new_totals[team_a] = new_total_a
+                new_totals[team_b] = new_total_b
+
+                new_gap = new_totals.max() - new_totals.min()
+                improvement = current_gap - new_gap
+
+                if improvement > best_improvement:
+                    best_improvement = improvement
+                    best_move = (team_a, team_b, role)
+
+        # No improvement → stop
+        if best_move is None:
+            break
+
+        team_a, team_b, role = best_move
+
+        # Apply swap
+        mask_a = (df['team'] == team_a) & (df['role'] == role)
+        mask_b = (df['team'] == team_b) & (df['role'] == role)
+
+        df.loc[mask_a, 'team'] = team_b
+        df.loc[mask_b, 'team'] = team_a
+
+    return df
+
+
+def pick_teams_by_area(df: pd.DataFrame,
+                       n_teams: int
+                       ) -> dict:
+    teams = dict()
+    df['team'] = None
+
+    for area in df['role'].unique():
+        avail_players = df[df['role'] == area]
+        df[df['role'] == area] = split_players_within_area(avail_players, n_teams)
+
+    df = rebalance_by_swaps(df, max_iter=10)
+
+    for team in df['team'].unique():
+        teams[team] = df.loc[df['team'] == team]
+
+    return teams
 
 
 def pick_players_with_balance(df: pd.DataFrame,
@@ -128,7 +249,8 @@ def make_teams(players_list, n_teams):
 
     players_pool = sort_by_rank_and_role(players_pool)
 
-    teams = pick_players_with_balance(players_pool, n_teams)
+    # teams = pick_players_with_balance(players_pool, n_teams)
+    teams = pick_teams_by_area(players_pool, n_teams)
 
     format_output(teams, players_pool)
 
@@ -136,8 +258,8 @@ def make_teams(players_list, n_teams):
 
 
 if __name__ == '__main__':
-    players = ['Will', 'Terry', 'Alex G', 'Adekunle', 'Doruk', 'Chris E', 'Jaffa', 'Antonio',
-               'Antonios mate', 'Naser', 'Lee', 'Michael', 'Deepu', 'Paul']
+    players = ['Will', 'Abel', 'Cory', 'Terry', 'Alex G', 'Adekunle', 'Doruk', 'Chris E', 'Jaffa', 'Antonio',
+               'Antonios mate', 'Naser', 'Lee', 'Michael', 'Deepu', 'Paul', 'Ricardo', 'Emmanuel']
 
     num_of_teams = 4
 
