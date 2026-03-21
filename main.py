@@ -249,8 +249,9 @@ def make_teams(players_list, n_teams):
 
     players_pool = sort_by_rank_and_role(players_pool)
 
-    # teams = pick_players_with_balance(players_pool, n_teams)
-    teams = pick_teams_by_area(players_pool, n_teams)
+    teams = pick_players_with_balance(players_pool, n_teams)
+    # teams = pick_teams_by_area(players_pool, n_teams)
+    # TODO: Fix bug that prevents it from running on AWS and put a hard constraint on players per team, since there can now be 4 v 6 situations
 
     format_output(teams, players_pool)
 

@@ -303,8 +303,8 @@ def make_teams(n_teams, players_list, players_db):
             players_pool.loc[players_pool['name'] == name, 'score'] = tiers_values['C']
 
     players_pool = sort_by_rank_and_role(players_pool)
-    # teams = pick_players_with_balance(players_pool, n_teams)
-    teams = pick_teams_by_area(players_pool, n_teams)
+    teams = pick_players_with_balance(players_pool, n_teams)
+    # teams = pick_teams_by_area(players_pool, n_teams)
     teams_df = format_output(teams, players_pool, n_teams)
 
     team_sheet_name = f"{n_teams}_teams"
