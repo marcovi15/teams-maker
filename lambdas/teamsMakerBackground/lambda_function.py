@@ -8,6 +8,7 @@ import warnings
 from data_paths import read_sign_up, read_db, publish_data, read_volunteers
 import logging
 import json
+import itertools
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -16,6 +17,124 @@ BASEDIR = os.path.dirname(os.path.abspath(__file__))
 pd.options.mode.chained_assignment = None
 
 tiers_values = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
+
+
+def split_players_within_area(df, n_teams):
+    players = df.to_dict('records')
+    n = len(players)
+
+    base_size = n // n_teams
+    remainder = n % n_teams  # how many groups will have +1 player
+
+    # Target sizes: e.g. [3,3,2,2] if uneven
+    target_sizes = [base_size + (1 if i < remainder else 0) for i in range(n_teams)]
+
+    best_partition = None
+    best_variance = float('inf')
+
+    for assignment in itertools.product(range(n_teams), repeat=n):
+        sizes = [0] * n_teams
+
+        # Count sizes quickly first (early pruning)
+        for g in assignment:
+            sizes[g] += 1
+
+        if sorted(sizes) != sorted(target_sizes):
+            continue
+
+        # Compute totals
+        totals = [0] * n_teams
+        for i, g in enumerate(assignment):
+            totals[g] += players[i]['score']
+
+        variance = np.var(totals)
+
+        if variance < best_variance:
+            best_variance = variance
+            best_assignment = assignment
+
+    result_df = df.copy()
+    result_df["team"] = best_assignment
+
+    return result_df
+
+
+def rebalance_by_swaps(df, max_iter=10):
+    df = df.copy()
+
+    for _ in range(max_iter):
+        team_totals = df.groupby('team')['score'].sum()
+        current_gap = team_totals.max() - team_totals.min()
+
+        best_improvement = 0
+        best_move = None
+
+        teams = df['team'].unique()
+        roles = df['role'].unique()
+
+        # Try all (team_a, team_b, role) combinations
+        for team_a, team_b in itertools.combinations(teams, 2):
+            total_a = team_totals[team_a]
+            total_b = team_totals[team_b]
+
+            for role in roles:
+                mask_a = (df['team'] == team_a) & (df['role'] == role)
+                mask_b = (df['team'] == team_b) & (df['role'] == role)
+
+                if not mask_a.any() and not mask_b.any():
+                    continue
+
+                sum_a = df.loc[mask_a, 'score'].sum()
+                sum_b = df.loc[mask_b, 'score'].sum()
+
+                # simulate swap
+                new_total_a = total_a - sum_a + sum_b
+                new_total_b = total_b - sum_b + sum_a
+
+                # recompute new totals array
+                new_totals = team_totals.copy()
+                new_totals[team_a] = new_total_a
+                new_totals[team_b] = new_total_b
+
+                new_gap = new_totals.max() - new_totals.min()
+                improvement = current_gap - new_gap
+
+                if improvement > best_improvement:
+                    best_improvement = improvement
+                    best_move = (team_a, team_b, role)
+
+        # No improvement → stop
+        if best_move is None:
+            break
+
+        team_a, team_b, role = best_move
+
+        # Apply swap
+        mask_a = (df['team'] == team_a) & (df['role'] == role)
+        mask_b = (df['team'] == team_b) & (df['role'] == role)
+
+        df.loc[mask_a, 'team'] = team_b
+        df.loc[mask_b, 'team'] = team_a
+
+    return df
+
+
+def pick_teams_by_area(df: pd.DataFrame,
+                       n_teams: int
+                       ) -> dict:
+    teams = dict()
+    df['team'] = None
+
+    for area in df['role'].unique():
+        avail_players = df[df['role'] == area]
+        df[df['role'] == area] = split_players_within_area(avail_players, n_teams)
+
+    df = rebalance_by_swaps(df, max_iter=10)
+
+    for team in df['team'].unique():
+        teams[team] = df.loc[df['team'] == team]
+
+    return teams
 
 
 def sort_by_rank_and_role(df):
@@ -45,9 +164,8 @@ def create_alternating_list(length, n_teams):
 
 
 def decide_round_picking_order(df, n_teams):
-
     if df['team'].isna().all():
-        teams_order = range(1, n_teams+1)
+        teams_order = range(1, n_teams + 1)
     else:
         sorted_groups = df.groupby('team').sum('score').sort_values('score')
         teams_order = sorted_groups.index[:n_teams]
@@ -56,8 +174,8 @@ def decide_round_picking_order(df, n_teams):
 
 
 def pick_players_with_balance(df: pd.DataFrame,
-                               n_teams: int
-                               ) -> dict:
+                              n_teams: int
+                              ) -> dict:
     teams = dict()
     df['team'] = None
 
@@ -92,7 +210,6 @@ def update_volunteers(players_db: pd.DataFrame,
                       list_of_volunteers: list,
                       players_list: list
                       ) -> pd.DataFrame:
-
     players_db.loc[players_db['name'].isin(players_list), 'played'] += 1
     players_db.loc[players_db['name'].isin(list_of_volunteers), 'helped'] += 1
 
@@ -101,7 +218,6 @@ def update_volunteers(players_db: pd.DataFrame,
 
 def find_dodgers(players_db: pd.DataFrame
                  ) -> str:
-
     # Number of times you should have played to be considered a regular
     regulars_definition = 3
     regulars_mask = players_db['played'] > regulars_definition
@@ -114,7 +230,7 @@ def find_dodgers(players_db: pd.DataFrame
         list_of_dodgers = ', '.join(dodgers_ranked['name'].astype(str))
         dodgers = f"Recommended volunteers: {list_of_dodgers}."
     else:
-        dodgers_ranked = dodgers_ranked[:max_num_dodgers-1]
+        dodgers_ranked = dodgers_ranked[:max_num_dodgers - 1]
         list_of_dodgers = ', '.join(dodgers_ranked['name'].astype(str))
         dodgers = f"Recommended volunteers: {list_of_dodgers}."
 
@@ -187,12 +303,12 @@ def make_teams(n_teams, players_list, players_db):
             players_pool.loc[players_pool['name'] == name, 'score'] = tiers_values['C']
 
     players_pool = sort_by_rank_and_role(players_pool)
-    teams = pick_players_with_balance(players_pool, n_teams)
+    # teams = pick_players_with_balance(players_pool, n_teams)
+    teams = pick_teams_by_area(players_pool, n_teams)
     teams_df = format_output(teams, players_pool, n_teams)
 
     team_sheet_name = f"{n_teams}_teams"
     publish_data(teams_df, "saturday_football", team_sheet_name, 'teams-maker-key.json')
-
 
     return teams_df
 
@@ -257,9 +373,9 @@ def create_html_page(teams_dict, recommended_volunteers):
             <h1>&#128640; Success!</h1>
             <p>&#9917; Teams are ready. &#9917;</p>
             <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG5taTdwYjV0bXJma21qc3lsNmluaGpvN3RiN25pNWI1bHJ6MjFjcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/elatsjsGzdLtNov4Ky/giphy.gif" alt="Success GIF" />
-            
+
             <p><span style="color: blue; font-size: 1.2em;">{recommended_volunteers}</span></p>
-                
+
 
             <div class="teams-section">
                 <h2>Team Assignments</h2>
@@ -294,7 +410,7 @@ def create_html_page(teams_dict, recommended_volunteers):
 
 
 def save_output_page(html):
-    page = open("../../footy_script_results.html", "w")
+    page = open("footy_script_results.html", "w")
     page.write(html)
     page.close()
 
@@ -350,6 +466,7 @@ def lambda_handler(event, context):
         Body=json.dumps(return_message),
         ContentType='application/json'
     )
+
 
 if __name__ == '__main__':
     main()
