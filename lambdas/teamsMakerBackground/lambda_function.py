@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 pd.options.mode.chained_assignment = None
 
-tiers_values = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
+tiers_values = {"A": 6, "B": 4.5, "C": 3, "D": 2, "E": 1}
 
 
 def split_players_within_area(df, n_teams):
@@ -138,7 +138,7 @@ def pick_teams_by_area(df: pd.DataFrame,
 
 
 def sort_by_rank_and_role(df):
-    role_order = ['F', 'M', 'D', 'G']
+    role_order = ['M', 'F', 'D', 'G']
     df['role'] = pd.Categorical(df['role'], categories=role_order, ordered=True)
     sorted_df = df.sort_values(by=['role', 'score'], ascending=[True, False])
 
@@ -304,7 +304,7 @@ def make_teams(n_teams, players_list, players_db):
 
     players_pool = sort_by_rank_and_role(players_pool)
     teams = pick_players_with_balance(players_pool, n_teams)
-    # teams = pick_teams_by_area(players_pool, n_teams)
+    # teams = pick_teams_by_area(players_pool, n_teams)    
     teams_df = format_output(teams, players_pool, n_teams)
 
     team_sheet_name = f"{n_teams}_teams"
