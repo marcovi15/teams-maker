@@ -10,6 +10,8 @@ import logging
 import json
 import itertools
 
+from lambda_build.rsa.randnum import randint
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -237,6 +239,20 @@ def find_dodgers(players_db: pd.DataFrame
     return dodgers
 
 
+def get_random_volunteers(players_list, players_db):
+    """
+    Produce list of 4 random regulars who could be this week's volunteers
+    """
+    players_set = set(players_db["name"])
+
+    regulars_list = [player for player in players_list if player in players_set]
+
+    volunteers_needed = 4
+    volunteers_available = min(volunteers_needed, len(regulars_list))
+
+    return random.sample(regulars_list, volunteers_available)
+
+
 def format_output_message(teams_dict, players_df, n_teams):
     """
     Print results while keeping it separate from inputs definition
@@ -254,13 +270,15 @@ def format_output_message(teams_dict, players_df, n_teams):
 def format_output(teams_dict, players_df, n_teams):
     ideal_avg_team_skill = sum(players_df['score']) / n_teams
 
+    TEAM_NAMES = ["Orange", "Gray", "Yellow", "Blue"]
+
     output_df = pd.DataFrame(
         index=list(range(1, len(teams_dict) + 1)),
         columns=['team_name', 'players', 'normalised_score']
     )
-    for team in teams_dict.keys():
+    for team_idx, team in enumerate(teams_dict.keys()):
         df = teams_dict[team]
-        output_df.loc[team, 'team_name'] = f"Team {team}"
+        output_df.loc[team, 'team_name'] = f"Team {TEAM_NAMES[team_idx]}"
         output_df.loc[team, 'players'] = df['name'].to_list()
         output_df.loc[team, 'normalised_score'] = round(sum(df['score']) / ideal_avg_team_skill, 2)
 
@@ -374,7 +392,7 @@ def create_html_page(teams_dict, recommended_volunteers):
             <p>&#9917; Teams are ready. &#9917;</p>
             <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG5taTdwYjV0bXJma21qc3lsNmluaGpvN3RiN25pNWI1bHJ6MjFjcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/elatsjsGzdLtNov4Ky/giphy.gif" alt="Success GIF" />
 
-            <p><span style="color: blue; font-size: 1.2em;">{recommended_volunteers}</span></p>
+            <p><span style="color: blue; font-size: 1.2em;">Suggested volunteers: {recommended_volunteers}</span></p>
 
 
             <div class="teams-section">
@@ -433,7 +451,7 @@ def main():
         publish_data(players_db, "football_db", db_sheet_name, 'players-db-key.json')
 
     # recommended_volunteers = find_dodgers(players_db)
-    recommended_volunteers = ['test', 'test', 'test']
+    recommended_volunteers = get_random_volunteers(players_list, players_db)
 
     html_page = create_html_page(teams_dict, recommended_volunteers)
 
